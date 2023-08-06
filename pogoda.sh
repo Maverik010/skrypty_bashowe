@@ -17,7 +17,7 @@ if [ $# -eq 2 ]
         curl --url "wttr.in/$city,$country?0?F&lang=pl" -w "\n"
     elif [ $# -eq 1 ]
         then
-        echo "Err: Podano tylko jeden argument. Wymagany brak argumentów lub dwa"
+        echo "Err: Podano tylko jeden argument. Wymagany brak argumentów lub dwa" >&2
         exit 1
     else
         echo -e "Witaj w skrypcie pogodowym zaraz wyświetlę Ci pogodę." 
