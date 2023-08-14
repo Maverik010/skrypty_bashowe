@@ -15,26 +15,15 @@ NC='\033[0m' # No Color
 answer=""
 
 query(){ # przeliczenie na polskie złotówki
-    
-    #if [ $(echo $answer | cut -c1-3 ) -eq 404 ] 
-    #then
-    #   echo "404 - źle sformuowane zapytanie lub dane jeszcze nie upublicznione."
-    #   return 404
-    #fi
-    # $answer=$(awk '{print $1}' <<< "$answer")
+    local verify=$(curl --silent --head --url "http://api.nbp.pl/api/exchangerates/rates/a/$1/" | awk '/^HTTP/{print $2}')
+    echo $verify
+    if [ "$verify" == "404" ] 
+    then
+       echo "Zwrotka: $verify"
+       exit 1
+    else
     answer=$(curl -s --url "http://api.nbp.pl/api/exchangerates/rates/a/$1/" | jq '.rates | .[] | .mid')
-}
-
-przelicz(){
-    # $1 waluta obca pierwsza
-    # $2 waluta obca druga
-    answer=$($1*$2)
-}
-
-przelicz_obce_waluty(){
-    # $1 Mocniejsza waluta w stosunku do PLN
-    # $2 Słabsza waluta w stosunku do PLN
-    answer=$(($1 + $2 / 2))
+    fi
 }
 
 [ $# -eq 0 ] && {
@@ -42,14 +31,32 @@ przelicz_obce_waluty(){
     exit 1;
 }
 
+[ $# -eq 1 ] && {
+    waluta=$1
+    query $waluta
+    echo -e "${GREEN}1 ${CYAN}$waluta${NC} to w przeliczeniu ${GREEN}$answer${CYAN} PLN${NC}"
+    exit 0
+}
+
 [ $# -eq 2 ] && {
     waluta=$2
     ilosc=$1
     query $waluta
-    # echo $answer
-    # answer=$((ilosc*answer))
     answer=$(awk "BEGIN { printf(\"%.2f\", $ilosc * $answer) }")
     echo -e "${GREEN}$ilosc ${CYAN}$waluta${NC} to w przeliczeniu ${GREEN}$answer${CYAN} PLN${NC}"
     exit 0
 }
 
+[ $# -eq 3 ] && {
+    ilosc=$1
+    waluta_z=$2 # pobranie waluty z której będziemy przeliczać
+    waluta_na=$3 # pobranie waluty na którą będziemy przeliczać
+    tablica=("" "") # przechowujemy tutaj wartości skonwertowane na złotówki z dwóch zapytań, API NBP nie pozwala konwertować bezpośrednio walut obcych.
+    query $waluta_z # zapytanie o walute
+    tablica[0]=$answer # zapisanie odpowiedzi do tablicy
+    query $waluta_na # zapytanie o drugą walute
+    tablica[1]=$answer # zapisanie odpowiedzi do tablicy
+    answer=$(awk "BEGIN { printf(\"%.2f\", (${tablica[0]} / ${tablica[1]}) * $ilosc) }")
+    echo -e "${GREEN}$ilosc ${CYAN}$waluta_z${NC} to w przeliczeniu ${GREEN}$answer${CYAN} $waluta_na${NC}"
+    exit 0
+}
