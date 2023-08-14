@@ -16,7 +16,6 @@ answer=""
 
 query(){ # przeliczenie na polskie złotówki
     local verify=$(curl --silent --head --url "http://api.nbp.pl/api/exchangerates/rates/a/$1/" | awk '/^HTTP/{print $2}')
-    echo $verify
     if [ "$verify" == "404" ] 
     then
        echo "Zwrotka: $verify"
